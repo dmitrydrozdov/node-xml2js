@@ -6,7 +6,7 @@
     "json"
   ],
   "homepage": "https://github.com/Leonidas-from-XIV/node-xml2js",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "author": "Marek Kubica <marek@xivilization.net> (https://xivilization.net)",
   "contributors": [
     "maqr <maqr.lollerskates@gmail.com> (https://github.com/maqr)",
@@ -67,7 +67,6 @@
     "build": "cake build",
     "test": "zap",
     "coverage": "nyc npm test && nyc report",
-    "coveralls": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
     "doc": "cake doc"
   },
   "repository": {
@@ -79,13 +78,15 @@
     "xmlbuilder": "~11.0.0"
   },
   "devDependencies": {
-    "coffee-script": "^1.12.7",
+    "coffee-script": "npm:coffeescript@^1.12.7",
     "coffeescript": ">=1.10.0 <2",
-    "coveralls": "^3.0.1",
-    "diff": ">=1.0.8",
-    "docco": ">=0.6.2",
-    "nyc": ">=2.2.1",
+    "diff": "^5.2.2",
+    "docco": "^0.9.2",
+    "nyc": "^17.1.0",
     "zap": ">=0.2.9 <1"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   },
   "engines": {
     "node": ">=4.0.0"
