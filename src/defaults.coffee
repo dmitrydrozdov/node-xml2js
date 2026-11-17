@@ -70,4 +70,6 @@ exports.defaults = {
     chunkSize: 10000
     emptyTag: ''
     cdata: false
+    # names of elements whose text is always written as CDATA
+    cdataElements: []
 }

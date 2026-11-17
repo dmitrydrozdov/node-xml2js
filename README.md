@@ -194,7 +194,7 @@ will result in:
 At the moment, a one to one bi-directional conversion is guaranteed only for
 default configuration, except for `attrkey`, `charkey` and `explicitArray` options
 you can redefine to your taste. Writing CDATA is supported via setting the `cdata`
-option to `true`.
+option to `true`, or, for specific elements, via the `cdataElements` option.
 
 To specify attributes:
 ```javascript
@@ -442,6 +442,47 @@ Possible options are:
   * `cdata` (default: `false`): wrap text nodes in `<![CDATA[ ... ]]>` instead of
     escaping when necessary. Does not add `<![CDATA[ ... ]]>` if it is not required.
     Added in 0.4.5.
+  * `cdataElements` (default: `[]`): names of elements whose text is always
+    written as `<![CDATA[ ... ]]>`, whatever the text contains and independently
+    of the `cdata` option. Names match exactly (case-sensitive) at any depth, and
+    only the listed element's own text is wrapped, not that of its descendants.
+    A single name may be passed as a string. Every `]]>` in the text is split
+    across adjacent CDATA sections, so the output stays well-formed.
+    An empty string is written as an empty section (`<ST><![CDATA[]]></ST>`).
+    An absent text value (`null`, `undefined`, or an object without a `charkey`,
+    e.g. attributes only) gets no CDATA section and is written as it would be
+    without the option.
+    ```javascript
+    var builder = new xml2js.Builder({cdataElements: ['ST']});
+    var xml = builder.buildObject({Algorithm: {
+      $: {Name: 'INIT', Comment: 'Initialization algorithm'},
+      ST: ['\nh1Extend:=FALSE;\nh2Extend:=FALSE;\nvextend:=FALSE;\nh1Retract:=FALSE;' +
+           '\nh2Retract:=FALSE;\nturn_vacuum_on:=FALSE;\nturn_vacuum_off:=FALSE;']
+    }});
+    ```
+    produces:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <Algorithm Name="INIT" Comment="Initialization algorithm">
+      <ST><![CDATA[
+    h1Extend:=FALSE;
+    h2Extend:=FALSE;
+    vextend:=FALSE;
+    h1Retract:=FALSE;
+    h2Retract:=FALSE;
+    turn_vacuum_on:=FALSE;
+    turn_vacuum_off:=FALSE;]]></ST>
+    </Algorithm>
+    ```
+    `@types/xml2js` does not declare this option. TypeScript users can add it
+    with a module augmentation:
+    ```typescript
+    declare module "xml2js" {
+      interface BuilderOptions {
+        cdataElements?: string[];
+      }
+    }
+    ```
 
 `renderOpts`, `xmldec`,`doctype` and `headless` pass through to
 [xmlbuilder-js](https://github.com/oozcitak/xmlbuilder-js).

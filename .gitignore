@@ -6,3 +6,7 @@ coverage
 _build
 _opam
 *.bc.*
+CLAUDE.md
+.agents/*
+.claude/*
+openspec/*

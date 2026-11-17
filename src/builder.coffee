@@ -17,7 +17,7 @@ escapeCDATA = (entry) ->
   # The first contains the ']]'
   # The second contains the '>'
   # When later parsed, it will be put back together as ']]>'
-  return entry.replace ']]>', ']]]]><![CDATA[>'
+  return entry.replace /\]\]>/g, ']]]]><![CDATA[>'
 
 class exports.Builder
   constructor: (opts) ->
@@ -26,6 +26,11 @@ class exports.Builder
     @options[key] = value for own key, value of defaults["0.2"]
     # overwrite them with the specified options, if any
     @options[key] = value for own key, value of opts
+    # accept a missing list or a single element name
+    if not @options.cdataElements
+      @options.cdataElements = []
+    else if typeof @options.cdataElements is 'string'
+      @options.cdataElements = [@options.cdataElements]
 
   buildObject: (rootObj) ->
     attrkey = @options.attrkey
@@ -41,13 +46,35 @@ class exports.Builder
       # otherwise we'll use whatever they've set, or the default
       rootName = @options.rootName
 
+    # elements listed in cdataElements always get their text as CDATA
+    isCDATAElement = (name) => @options.cdataElements.indexOf(name) >= 0
+
+    # The one place that decides how text is written into an element: always
+    # CDATA for listed elements, on demand under the `cdata` option, plain
+    # text otherwise. A null/undefined value is never wrapped.
+    writeText = (element, text) =>
+      if text? and isCDATAElement element.name
+        element.raw wrapCDATA text.toString()
+      else if @options.cdata && requiresCDATA text
+        element.raw wrapCDATA text
+      else
+        element.txt text
+
+    # Appends a child element that holds only text. Anything that may become
+    # CDATA goes through writeText; other text keeps the original
+    # `ele(key, text)` call so existing output is unchanged.
+    appendText = (element, key, text) =>
+      if (text? and isCDATAElement key) or (@options.cdata && requiresCDATA text)
+        writeText(element.ele(key), text).up()
+      else
+        if not text?
+          text = ''
+        element.ele(key, text.toString()).up()
+
     render = (element, obj) =>
       if typeof obj isnt 'object'
         # single element, just append it as text
-        if @options.cdata && requiresCDATA obj
-          element.raw wrapCDATA obj
-        else
-          element.txt obj
+        writeText element, obj
       else if Array.isArray obj
         # fix issue #119
         for own index, child of obj
@@ -64,19 +91,13 @@ class exports.Builder
 
           # Case #2 Char data (CDATA, etc.)
           else if key is charkey
-            if @options.cdata && requiresCDATA child
-              element = element.raw wrapCDATA child
-            else
-              element = element.txt child
+            element = writeText element, child
 
           # Case #3 Array data
           else if Array.isArray child
             for own index, entry of child
               if typeof entry is 'string'
-                if @options.cdata && requiresCDATA entry
-                  element = element.ele(key).raw(wrapCDATA entry).up()
-                else
-                  element = element.ele(key, entry).up()
+                element = appendText element, key, entry
               else
                 element = render(element.ele(key), entry).up()
 
@@ -86,12 +107,7 @@ class exports.Builder
 
           # Case #5 String and remaining types
           else
-            if typeof child is 'string' && @options.cdata && requiresCDATA child
-              element = element.ele(key).raw(wrapCDATA child).up()
-            else
-              if not child?
-                child = ''
-              element = element.ele(key, child.toString()).up()
+            element = appendText element, key, child
 
       element
 
